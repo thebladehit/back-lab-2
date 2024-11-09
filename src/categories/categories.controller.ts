@@ -1,13 +1,14 @@
 import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
+import { CreateCategoryDto } from './dto/create-category.dto';
 
 @Controller()
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post('category')
-  createCategory(@Body('categoryName') categoryName: string) {
-    return this.categoriesService.createCategory(categoryName);
+  createCategory(@Body() createCategoryDto: CreateCategoryDto) {
+    return this.categoriesService.createCategory(createCategoryDto);
   }
 
   @Get('categories')

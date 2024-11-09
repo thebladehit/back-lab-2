@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { generateId } from '../utils/utils';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { PrismaService } from '../prisma/prisma.service';
 
 export interface Category {
   id: string;
@@ -8,29 +9,29 @@ export interface Category {
 
 @Injectable()
 export class CategoriesService {
-  private categoryStorage: Category[] = [];
-
-  public createCategory(categoryName: string) {
-    if (!categoryName) throw new BadRequestException('Provide category name');
-    const id = generateId();
-    this.categoryStorage.push({ categoryName, id });
-    return this.categoryStorage[this.categoryStorage.length - 1];
+  constructor(private readonly prisma: PrismaService) {
   }
 
-  public getCategoryById(id: string) {
-    const category = this.categoryStorage.find(category => category.id === id);
+  public async createCategory(dto: CreateCategoryDto) {
+    const category = await this.prisma.category.findUnique({ where: { categoryName: dto.categoryName } });
+    if (category) throw new BadRequestException('Category with such name already exists');
+    return this.prisma.category.create({ data: dto });
+  }
+
+  public async getCategoryById(id: string) {
+    const category = await this.prisma.category.findUnique({ where: { id } });
     if (!category) throw new NotFoundException('No category with id: ' + id);
     return category;
   }
 
   public getALlCategories() {
-    return this.categoryStorage;
+    return this.prisma.category.findMany();
   }
 
-  public deleteCategoryById(id: string) {
-    const category = this.categoryStorage.find(category => category.id === id);
+  public async deleteCategoryById(id: string) {
+    const category = await this.prisma.category.findUnique({ where: { id } });
     if (!category) throw new NotFoundException('No category with id: ' + id);
-    this.categoryStorage = this.categoryStorage.filter(category => category.id !== id);
+    await this.prisma.category.delete({ where: { id } });
     return category;
   }
 }
