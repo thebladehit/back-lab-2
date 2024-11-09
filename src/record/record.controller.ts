@@ -1,14 +1,13 @@
 import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { RecordService } from './record.service';
-import { RecordDto } from './dto/record.dto';
+import { CreateRecordDto } from './dto/create-record.dto';
 
 @Controller()
 export class RecordController {
-  constructor(private readonly recordService: RecordService) {
-  }
+  constructor(private readonly recordService: RecordService) {}
 
   @Post('record')
-  createRecord(@Body() recordDto: RecordDto) {
+  createRecord(@Body() recordDto: CreateRecordDto) {
     return this.recordService.createRecord(recordDto);
   }
 

@@ -1,67 +1,66 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { generateId } from '../utils/utils';
-import { RecordDto } from './dto/record.dto';
-
-export interface Record {
-  id: string;
-  userId: string;
-  categoryId: string;
-  createdAt: Date;
-  amount: number;
-}
+import { CreateRecordDto } from './dto/create-record.dto';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class RecordService {
-  private recordStorage: Record[] = [];
-
-  private validateRecordData(data: RecordDto) {
-    if (!data.userId) throw new BadRequestException('Provide user id');
-    if (!data.categoryId) throw new BadRequestException('Provide category id');
-    if (!data.createdAt) throw new BadRequestException('Provide date');
-    if (!data.amount) throw new BadRequestException('Provide amount');
-    if (isNaN(+data.amount)) throw new BadRequestException('Provide correct amount');
-    const date = new Date(data.createdAt);
-    if (isNaN(+date.getTime())) throw new BadRequestException('Provide correct date');
+  constructor(private readonly prisma: PrismaService) {
   }
 
-  public createRecord(recordDto: RecordDto) {
-    this.validateRecordData(recordDto);
-    const id = generateId();
-    this.recordStorage.push({
-      ...recordDto,
-      id,
-      amount: +recordDto.amount,
-      createdAt: new Date(recordDto.createdAt),
+  public async createRecord(dto: CreateRecordDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: dto.userId } });
+    if (!user) throw new NotFoundException('User with such id does not exist');
+    const category = await this.prisma.category.findUnique({ where: { id: dto.categoryId } });
+    if (!category) throw new NotFoundException('Category with such id does not exist');
+    const currencyName = dto.currency ? dto.currency : 'UAN';
+    return this.prisma.record.create({
+      data: {
+        createdAt: new Date(dto.createdAt),
+        amount: dto.amount,
+        user: {
+          connect: { id: dto.userId },
+        },
+        category: {
+          connect: { id: dto.categoryId },
+        },
+        currency: {
+          connectOrCreate: {
+            where: { name: currencyName },
+            create: { name: currencyName },
+          },
+        },
+      },
     });
-    return this.recordStorage[this.recordStorage.length - 1];
   }
 
   public getRecordByFilters(userId: string, categoryId: string) {
     if (!userId && !categoryId) {
       throw new BadRequestException('Provide either user id or category id or both');
     }
-    return this.recordStorage.filter(
-      record => (
-        (userId ? record.userId === userId : true)
-        &&
-        (categoryId ? record.categoryId === categoryId : true))
-    );
+    return this.prisma.record.findMany({
+      where: {
+        AND: [
+          userId ? { userId }: undefined,
+          categoryId ? { categoryId } : undefined,
+        ].find(Boolean),
+      },
+    });
   }
 
-  public getRecordById(id: string) {
-    const record = this.recordStorage.find(record => record.id === id);
+  public async getRecordById(id: string) {
+    const record = await this.prisma.record.findUnique({ where: { id: id } });
     if (!record) throw new NotFoundException('No record with id: ' + id);
     return record;
   }
 
   public getALlRecords() {
-    return this.recordStorage;
+    return this.prisma.record.findMany();
   }
 
-  public deleteRecordById(id: string) {
-    const record = this.recordStorage.find(record => record.id === id);
+  public async deleteRecordById(id: string) {
+    const record = await this.prisma.record.findUnique({ where: { id: id } });
     if (!record) throw new NotFoundException('No record with id: ' + id);
-    this.recordStorage = this.recordStorage.filter(record => record.id !== id);
+    await this.prisma.record.delete({ where: { id: id } });
     return record;
   }
 }
