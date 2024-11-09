@@ -18,17 +18,23 @@ model User {
   username   String   @unique
   currencyId String
   currency   Currency @relation(fields: [currencyId], references: [id])
+  records    Record[]
 }
 
 model Category {
-  id           String @id @default(uuid())
-  categoryName String @unique
+  id           String   @id @default(uuid())
+  categoryName String   @unique
+  records      Record[]
 }
 
 model Record {
   id         String   @id @default(uuid())
   createdAt  DateTime @default(now())
   amount     Int
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
   currencyId String
   currency   Currency @relation(fields: [currencyId], references: [id])
 }
