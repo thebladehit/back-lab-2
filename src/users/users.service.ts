@@ -7,7 +7,7 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {
   }
 
-  public async createUser(dto: CreateUserDto) {
+  public async createUser(dto: CreateUserDto, hashedPassword: string) {
     const user = await this.prisma.user.findUnique({ where: {username: dto.username } });
     if (user) throw new BadRequestException('User with such username already exists');
     let currencyName = dto.currency;
@@ -15,6 +15,7 @@ export class UsersService {
     return this.prisma.user.create({
       data: {
         username: dto.username,
+        password: hashedPassword,
         currency: {
           connectOrCreate: {
             where: { name: currencyName },
