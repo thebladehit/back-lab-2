@@ -32,10 +32,15 @@ export class UsersService {
     return user;
   }
 
+  public async getUserByUserName(username: string) {
+    const user = await this.prisma.user.findUnique({ where: { username } });
+    if (!user) throw new NotFoundException('No user with username: ' + username);
+    return user;
+  }
+
   public getALlUsers() {
     return this.prisma.user.findMany();
   }
-
 
   public async deleteUserById(id: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
